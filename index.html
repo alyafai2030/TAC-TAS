@@ -1,0 +1,471 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>حاسبة رماية التوقيت</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Tahoma', 'sans-serif';
+        }
+        /* Style for the custom file upload button */
+        .file-upload-btn {
+            display: inline-block;
+            cursor: pointer;
+        }
+        /* Hide the default file input */
+        input[type="file"] {
+            display: none;
+        }
+        /* Custom scrollbar for results */
+        .results-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .results-container::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        .results-container::-webkit-scrollbar-thumb {
+            background-color: #4a5568;
+            border-radius: 10px;
+            border: 2px solid #2d3748;
+        }
+    </style>
+</head>
+<body class="bg-black">
+    <div class="min-h-screen bg-[#1a202c] text-white p-2 sm:p-4 flex justify-center items-start">
+        <div class="w-full max-w-md mx-auto bg-[#2d3748] rounded-lg p-1 space-y-4">
+            
+            <header class="flex justify-between items-center bg-slate-900/50 p-1 rounded-md">
+                <h1 class="text-gray-300 text-lg font-bold mx-4">رماية التوقيت</h1>
+                <div class="flex bg-slate-700 p-1 rounded-md">
+                    <button id="show-results-btn" class="px-3 py-1 rounded-md text-sm transition">النتائج المحفوظة</button>
+                    <button id="show-scoring-btn" class="px-3 py-1 rounded-md text-sm transition bg-blue-600">تسجيل النتائج</button>
+                </div>
+            </header>
+
+            <!-- SCORING VIEW -->
+            <div id="scoring-view" class="p-4 space-y-4">
+                <div class="flex justify-between items-center space-x-4 rtl:space-x-reverse">
+                    <label class="font-semibold">الوقت</label>
+                    <input id="time-input" type="number" placeholder="0.0" class="w-24 bg-slate-700 border border-slate-600 rounded-md p-2 text-center" min="0" />
+                </div>
+
+                <div>
+                    <label class="block font-semibold mb-1 text-right">اسم الرامي</label>
+                    <div class="flex gap-2">
+                        <input id="shooter-name-input" list="shooter-names" type="text" placeholder="ادخل اسم الرامي هنا" class="w-full bg-slate-900 border border-blue-500 rounded-lg p-2 text-right placeholder-gray-400" />
+                        <datalist id="shooter-names"></datalist>
+                        <label for="names-file-input" class="file-upload-btn bg-sky-600 hover:bg-sky-700 px-3 rounded-lg text-sm flex items-center justify-center">تحميل</label>
+                        <input type="file" id="names-file-input" accept=".txt" />
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="grid grid-cols-5 gap-2 text-center">
+                        <div class="bg-green-800 font-bold p-2 rounded-md">M</div>
+                        <div class="bg-green-800 font-bold p-2 rounded-md">D</div>
+                        <div class="bg-green-800 font-bold p-2 rounded-md">C</div>
+                        <div class="bg-green-800 font-bold p-2 rounded-md">A</div>
+                        <div class="bg-green-800 font-bold p-2 rounded-md">T</div>
+                    </div>
+                    <div id="scoring-grid"></div>
+                </div>
+
+                <div class="bg-blue-700 text-center p-3 rounded-lg">
+                    <div class="text-lg font-semibold">النتيجة</div>
+                    <div id="final-score-display" class="text-3xl font-bold">0 / 50</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="save-btn" class="bg-slate-600 hover:bg-slate-500 font-semibold py-2 rounded-lg transition">حفظ النتيجة</button>
+                    <button id="clear-btn" class="bg-slate-600 hover:bg-slate-500 font-semibold py-2 rounded-lg transition">مسح</button>
+                </div>
+                 <button id="cancel-edit-btn" class="hidden w-full bg-amber-600 hover:bg-amber-500 font-semibold py-2 rounded-lg transition mt-2">إلغاء التعديل</button>
+            </div>
+
+            <!-- RESULTS VIEW -->
+            <div id="results-view" class="p-4 space-y-4 hidden">
+                <h2 class="text-2xl font-bold text-center text-cyan-400">النتائج المحفوظة</h2>
+                <div class="flex justify-between items-center gap-2">
+                    <button id="clear-all-btn" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        مسح الكل
+                    </button>
+                    <button id="export-csv-btn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition">تصدير CSV</button>
+                </div>
+                <div class="flex justify-center items-center gap-2 bg-slate-900/50 p-1 rounded-lg">
+                    <span class="font-semibold text-gray-300">ترتيب حسب:</span>
+                    <button id="sort-by-date-btn" class="px-4 py-1 rounded-md text-sm transition bg-blue-600">الأحدث</button>
+                    <button id="sort-by-score-btn" class="px-4 py-1 rounded-md text-sm transition bg-slate-700">الأعلى نقاطاً</button>
+                </div>
+                <div id="results-list-container" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 results-container">
+                    <!-- Results will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CONSTANTS ---
+    const ZONES = ['M', 'D', 'C', 'A'];
+    const POINT_VALUES = { A: 5, C: 4, D: 3, M: 0 };
+    const MAX_HITS_PER_TARGET = 2;
+    const MAX_TARGETS = 5;
+    const MAX_SCORE = MAX_TARGETS * MAX_HITS_PER_TARGET * POINT_VALUES['A']; // 50
+    const TIME_LIMIT_SECONDS = 30;
+    const PENALTY_PER_SECOND = 0.5;
+
+    // --- DOM ELEMENTS ---
+    const scoringView = document.getElementById('scoring-view');
+    const resultsView = document.getElementById('results-view');
+    const showScoringBtn = document.getElementById('show-scoring-btn');
+    const showResultsBtn = document.getElementById('show-results-btn');
+    const timeInput = document.getElementById('time-input');
+    const shooterNameInput = document.getElementById('shooter-name-input');
+    const shooterNamesDatalist = document.getElementById('shooter-names');
+    const namesFileInput = document.getElementById('names-file-input');
+    const scoringGrid = document.getElementById('scoring-grid');
+    const finalScoreDisplay = document.getElementById('final-score-display');
+    const saveBtn = document.getElementById('save-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const clearAllBtn = document.getElementById('clear-all-btn');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    const sortByDateBtn = document.getElementById('sort-by-date-btn');
+    const sortByScoreBtn = document.getElementById('sort-by-score-btn');
+    const resultsListContainer = document.getElementById('results-list-container');
+
+    // --- STATE ---
+    let state = {
+        view: 'scoring',
+        shooterName: '',
+        time: '',
+        selections: Array(MAX_TARGETS).fill([]),
+        savedResults: [],
+        shooterNamesList: [],
+        sortBy: 'date',
+        editingResultId: null,
+    };
+
+    // --- HELPERS ---
+    const formatScore = (score) => (score % 1 === 0 ? score : score.toFixed(1));
+    const formatDate = (isoString) => {
+        if (!isoString) return '';
+        return new Date(isoString).toLocaleDateString('ar-SA', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+    };
+
+    // --- STATE MANAGEMENT & RENDERING ---
+    const calculateFinalScore = () => {
+        const rawScore = state.selections.flat().reduce((total, zone) => total + POINT_VALUES[zone], 0);
+        const timeValue = parseFloat(state.time) || 0;
+        if (timeValue <= TIME_LIMIT_SECONDS) return rawScore;
+        const penalty = (timeValue - TIME_LIMIT_SECONDS) * PENALTY_PER_SECOND;
+        return Math.max(0, rawScore - penalty);
+    };
+
+    const render = () => {
+        // View switching
+        if (state.view === 'scoring') {
+            scoringView.classList.remove('hidden');
+            resultsView.classList.add('hidden');
+            showScoringBtn.classList.add('bg-blue-600');
+            showResultsBtn.classList.remove('bg-blue-600');
+        } else {
+            scoringView.classList.add('hidden');
+            resultsView.classList.remove('hidden');
+            showScoringBtn.classList.remove('bg-blue-600');
+            showResultsBtn.classList.add('bg-blue-600');
+            renderResults();
+        }
+
+        // Scoring form
+        timeInput.value = state.time;
+        shooterNameInput.value = state.shooterName;
+        finalScoreDisplay.innerHTML = `${formatScore(calculateFinalScore())} / ${MAX_SCORE}`;
+        renderScoringGrid();
+        
+        // Datalist for names
+        shooterNamesDatalist.innerHTML = state.shooterNamesList.map(name => `<option value="${name}"></option>`).join('');
+
+        // Edit mode UI
+        if (state.editingResultId) {
+            saveBtn.textContent = 'تحديث النتيجة';
+            cancelEditBtn.classList.remove('hidden');
+        } else {
+            saveBtn.textContent = 'حفظ النتيجة';
+            cancelEditBtn.classList.add('hidden');
+        }
+    };
+    
+    const renderScoringGrid = () => {
+        scoringGrid.innerHTML = '';
+        for (let i = 0; i < MAX_TARGETS; i++) {
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-5 gap-2 items-center';
+            ZONES.forEach(zone => {
+                const count = state.selections[i].filter(s => s === zone).length;
+                const button = document.createElement('button');
+                button.className = `relative p-3 rounded-lg font-bold text-lg transition-all duration-150 ${
+                    count > 0 ? 'bg-blue-600 ring-2 ring-blue-300' : 'bg-slate-700 border border-slate-600 hover:bg-slate-600'
+                }`;
+                button.textContent = count > 0 ? count : zone;
+                button.onclick = () => handleSelection(i, zone);
+                row.appendChild(button);
+            });
+            const targetLabel = document.createElement('div');
+            targetLabel.className = 'bg-green-800 font-bold p-3 rounded-md text-center text-lg';
+            targetLabel.textContent = i + 1;
+            row.appendChild(targetLabel);
+            scoringGrid.appendChild(row);
+        }
+    };
+
+    const renderResults = () => {
+        resultsListContainer.innerHTML = '';
+        const sortedResults = [...state.savedResults].sort((a, b) => {
+            if (state.sortBy === 'score') return b.score - a.score;
+            return (b.timestamp || b.id).localeCompare(a.timestamp || a.id);
+        });
+        
+        if (sortedResults.length === 0) {
+            resultsListContainer.innerHTML = '<p class="text-center text-gray-400 py-10">لا توجد نتائج محفوظة.</p>';
+            return;
+        }
+
+        sortedResults.forEach(result => {
+            const pointsPerTarget = result.selections.map(targetHits => targetHits.reduce((sum, zone) => sum + POINT_VALUES[zone], 0));
+            const resultCard = document.createElement('div');
+            resultCard.className = "bg-[#1a202c] p-3 rounded-xl space-y-4 shadow-lg";
+            resultCard.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl font-bold text-cyan-400">${formatScore(result.score)}</span>
+                        <button class="edit-result-btn" data-id="${result.id}">
+                            <div class="bg-blue-500/80 p-2 rounded-full hover:bg-blue-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                            </div>
+                        </button>
+                        <button class="delete-result-btn group" data-id="${result.id}">
+                            <div class="bg-red-500/80 p-2 rounded-full group-hover:bg-red-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="text-right">
+                        <h3 class="text-lg font-bold">${result.name}</h3>
+                        <p class="text-xs text-gray-400">${formatDate(result.timestamp || result.id)}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-5 gap-2 text-center">
+                    ${pointsPerTarget.map((points, i) => `
+                    <div class="bg-slate-800/80 p-2 rounded-lg">
+                        <p class="text-sm text-gray-400">T${i + 1}</p>
+                        <p class="text-lg font-bold">${points}</p>
+                    </div>`).join('')}
+                </div>
+            `;
+            resultsListContainer.appendChild(resultCard);
+        });
+    };
+    
+    // --- EVENT HANDLERS ---
+    const persistResults = () => {
+        try {
+            localStorage.setItem('tacticalShootingScores', JSON.stringify(state.savedResults));
+        } catch (error) {
+            console.error("Failed to save results to localStorage:", error);
+        }
+    };
+    
+    const handleSelection = (targetIndex, zone) => {
+        const currentTargetSelections = [...state.selections[targetIndex]];
+        const indexToRemove = currentTargetSelections.indexOf(zone);
+        if (currentTargetSelections.length < MAX_HITS_PER_TARGET) {
+            currentTargetSelections.push(zone);
+        } else if (indexToRemove > -1) {
+            currentTargetSelections.splice(indexToRemove, 1);
+        }
+        const newSelections = [...state.selections];
+        newSelections[targetIndex] = currentTargetSelections;
+        state.selections = newSelections;
+        render();
+    };
+    
+    const clearForm = () => {
+        state.shooterName = '';
+        state.time = '';
+        state.selections = Array(MAX_TARGETS).fill([]);
+        state.editingResultId = null;
+    };
+    
+    // Attach event listeners
+    showScoringBtn.onclick = () => { state.view = 'scoring'; render(); };
+    showResultsBtn.onclick = () => { state.view = 'results'; render(); };
+    timeInput.oninput = (e) => { state.time = e.target.value; render(); };
+    shooterNameInput.oninput = (e) => { state.shooterName = e.target.value; };
+    clearBtn.onclick = () => { clearForm(); render(); };
+    
+    saveBtn.onclick = () => {
+        if (!state.shooterName.trim()) {
+            alert("الرجاء إدخال اسم الرامي.");
+            return;
+        }
+
+        if (state.editingResultId) {
+            // Update existing result
+            const resultIndex = state.savedResults.findIndex(r => r.id === state.editingResultId);
+            if (resultIndex > -1) {
+                state.savedResults[resultIndex] = {
+                    ...state.savedResults[resultIndex],
+                    name: state.shooterName,
+                    score: calculateFinalScore(),
+                    time: parseFloat(state.time) || 0,
+                    selections: state.selections,
+                };
+                alert("تم تحديث النتيجة بنجاح!");
+            }
+        } else {
+            // Create new result
+            const timestamp = new Date().toISOString();
+            const newResult = {
+                id: timestamp,
+                name: state.shooterName,
+                score: calculateFinalScore(),
+                time: parseFloat(state.time) || 0,
+                selections: state.selections,
+                timestamp: timestamp,
+            };
+            state.savedResults.push(newResult);
+            alert("تم حفظ النتيجة بنجاح!");
+        }
+        
+        persistResults();
+        clearForm();
+        render();
+    };
+
+    cancelEditBtn.onclick = () => {
+        clearForm();
+        render();
+    };
+
+    clearAllBtn.onclick = () => {
+        if (window.confirm("هل أنت متأكد أنك تريد مسح جميع النتائج المحفوظة؟")) {
+            state.savedResults = [];
+            persistResults();
+            render();
+        }
+    };
+    
+    resultsListContainer.onclick = (e) => {
+        const deleteButton = e.target.closest('.delete-result-btn');
+        if (deleteButton) {
+            const id = deleteButton.dataset.id;
+            if (window.confirm("هل أنت متأكد من حذف هذه النتيجة؟")) {
+                state.savedResults = state.savedResults.filter(r => r.id !== id);
+                persistResults();
+                render();
+            }
+        }
+        
+        const editButton = e.target.closest('.edit-result-btn');
+        if (editButton) {
+            const id = editButton.dataset.id;
+            const resultToEdit = state.savedResults.find(r => r.id === id);
+            if (resultToEdit) {
+                state.editingResultId = id;
+                state.shooterName = resultToEdit.name;
+                state.time = resultToEdit.time.toString();
+                state.selections = resultToEdit.selections;
+                state.view = 'scoring';
+                render();
+            }
+        }
+    };
+
+    sortByDateBtn.onclick = () => {
+        state.sortBy = 'date';
+        sortByDateBtn.classList.add('bg-blue-600');
+        sortByDateBtn.classList.remove('bg-slate-700');
+        sortByScoreBtn.classList.remove('bg-blue-600');
+        sortByScoreBtn.classList.add('bg-slate-700');
+        render();
+    };
+    
+    sortByScoreBtn.onclick = () => {
+        state.sortBy = 'score';
+        sortByScoreBtn.classList.add('bg-blue-600');
+        sortByScoreBtn.classList.remove('bg-slate-700');
+        sortByDateBtn.classList.remove('bg-blue-600');
+        sortByDateBtn.classList.add('bg-slate-700');
+        render();
+    };
+    
+    namesFileInput.onchange = (event) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result;
+                const names = text.split('\n').map(name => name.trim()).filter(Boolean);
+                state.shooterNamesList = names;
+                alert(`تم تحميل ${names.length} اسم بنجاح.`);
+                render();
+            };
+            reader.readAsText(file);
+        }
+        event.target.value = '';
+    };
+    
+    exportCsvBtn.onclick = () => {
+        if (state.savedResults.length === 0) {
+            alert("لا توجد نتائج لتصديرها.");
+            return;
+        }
+        const header = "اسم الرامي,النتيجة,الوقت (ثانية),الخصم,التاريخ,طلقات الهدف 1,طلقات الهدف 2,طلقات الهدف 3,طلقات الهدف 4,طلقات الهدف 5\n";
+        const rows = state.savedResults.map(r => {
+            const timeValue = r.time || 0;
+            let penalty = 0;
+            if (timeValue > TIME_LIMIT_SECONDS) {
+                penalty = (timeValue - TIME_LIMIT_SECONDS) * PENALTY_PER_SECOND;
+            }
+
+            const targetHits = r.selections.map(s => s.join(' ')).join(',');
+            const formattedDate = `"${formatDate(r.timestamp || r.id)}"`;
+            return `${r.name},${formatScore(r.score)},${r.time},${formatScore(penalty)},${formattedDate},${targetHits}`;
+        }).join('\n');
+
+        const csvContent = "\uFEFF" + header + rows;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "نتائج_الرماية.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // --- INITIALIZATION ---
+    try {
+        const storedResults = localStorage.getItem('tacticalShootingScores');
+        if (storedResults) {
+            state.savedResults = JSON.parse(storedResults);
+        }
+    } catch (error) {
+        console.error("Failed to load saved results from localStorage:", error);
+        state.savedResults = [];
+    }
+    render();
+});
+</script>
+
+</body>
+</html>
